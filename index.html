@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#02060d">
+  <title>Terra Pulse — Explore Our Planet</title>
+  <meta name="description" content="Explore land, water, forests, urban growth and environmental change with Terra Pulse.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          colors: {
+            night: '#02060d', panel: '#030d17', panel2: '#051626',
+            line: '#05385c', aqua: '#05d1f5', muted: '#a1bddb'
+          },
+          boxShadow: { glow: '0 0 34px rgba(5,209,245,.12)' }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { background:#02060d; color:#ebf5ff; font-family:Inter,system-ui,sans-serif; }
+    .glass { background:rgba(3,13,23,.88); border:1px solid rgba(43,105,145,.38); backdrop-filter:blur(16px); }
+    .soft-border { border:1px solid rgba(43,105,145,.38); }
+    .map-grid { background-color:#102b29; background-image:linear-gradient(rgba(5,209,245,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(5,209,245,.045) 1px,transparent 1px); background-size:35px 35px; }
+    .map-texture { background:
+      radial-gradient(ellipse at 22% 25%, #37543b 0 8%, transparent 8.5%),
+      radial-gradient(ellipse at 34% 73%, #49613c 0 11%, transparent 11.5%),
+      radial-gradient(ellipse at 70% 22%, #344b35 0 13%, transparent 13.5%),
+      radial-gradient(ellipse at 78% 75%, #52613b 0 12%, transparent 12.5%),
+      linear-gradient(135deg,#1b3a30,#294632 36%,#20382d 60%,#142e2b); }
+    .land-shape { fill:#476348; stroke:#73906b; stroke-width:1.2; opacity:.8; }
+    .river { fill:none; stroke:#137a9a; stroke-width:16; stroke-linecap:round; opacity:.92; }
+    .river-highlight { fill:none; stroke:#36b4ce; stroke-width:3; stroke-linecap:round; opacity:.65; }
+    .orbit { fill:none; stroke:#05d1f5; stroke-opacity:.25; stroke-width:1; }
+    .category-card { transition:transform .2s ease,border-color .2s ease,background .2s ease; }
+    .category-card:hover { transform:translateY(-2px); border-color:rgba(5,209,245,.6); background:#071b2b; }
+    .primary-btn { background:#05d1f5; color:#02060d; transition:filter .2s,transform .2s; }
+    .primary-btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
+    .secondary-btn { background:#051626; border:1px solid rgba(43,105,145,.5); transition:border-color .2s,background .2s; }
+    .secondary-btn:hover { border-color:#05d1f5; background:#092035; }
+    .active-nav { color:#05d1f5; background:rgba(5,209,245,.08); }
+    .toast { animation:toast-in .25s ease-out; }
+    @keyframes toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation:none!important; transition:none!important; } }
+  </style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+  <header class="sticky top-0 z-40 border-b border-line/70 bg-panel/95 backdrop-blur-xl">
+    <div class="mx-auto flex h-[66px] max-w-[1500px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
+      <a href="#home" class="flex shrink-0 items-center gap-2 text-lg font-extrabold tracking-tight sm:text-xl" aria-label="Terra Pulse home">
+        <span class="text-aqua text-2xl">◉</span><span>Terra <span class="text-aqua">Pulse</span></span>
+      </a>
+      <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
+        <a class="nav-link active-nav rounded-full px-4 py-2 text-sm font-semibold" href="#home">Home</a>
+        <a class="nav-link rounded-full px-4 py-2 text-sm text-muted hover:text-white" href="#explore">Explore</a>
+        <a class="nav-link rounded-full px-4 py-2 text-sm text-muted hover:text-white" href="#features">Analytics</a>
+        <a class="nav-link rounded-full px-4 py-2 text-sm text-muted hover:text-white" href="#about">About</a>
+      </nav>
+      <div class="hidden min-w-0 items-center gap-2 sm:flex">
+        <label class="flex w-44 items-center gap-2 rounded-full border border-line bg-panel2 px-3 py-2 lg:w-64">
+          <span class="text-aqua">⌕</span>
+          <input id="topSearch" class="min-w-0 w-full bg-transparent text-xs text-white outline-none placeholder:text-muted" placeholder="Search location..." aria-label="Search location">
+        </label>
+        <button id="topSearchBtn" class="secondary-btn rounded-full px-4 py-2 text-xs font-semibold">Search</button>
+      </div>
+      <button id="mobileMenuBtn" class="secondary-btn rounded-xl px-3 py-2 text-sm md:hidden" aria-expanded="false" aria-controls="mobileMenu">☰</button>
+      <button id="signInBtn" class="secondary-btn hidden rounded-full px-4 py-2 text-xs font-semibold sm:block">♙ &nbsp; Sign In</button>
+    </div>
+    <div id="mobileMenu" class="hidden border-t border-line/60 px-4 py-3 md:hidden">
+      <div class="flex flex-wrap gap-2">
+        <a class="secondary-btn rounded-full px-4 py-2 text-sm" href="#home">Home</a>
+        <a class="secondary-btn rounded-full px-4 py-2 text-sm" href="#explore">Explore</a>
+        <a class="secondary-btn rounded-full px-4 py-2 text-sm" href="#features">Analytics</a>
+        <a class="secondary-btn rounded-full px-4 py-2 text-sm" href="#about">About</a>
+      </div>
+      <div class="mt-3 flex gap-2">
+        <input id="mobileSearch" class="min-w-0 flex-1 rounded-full border border-line bg-panel2 px-4 py-2 text-sm outline-none" placeholder="Search location..." aria-label="Search location">
+        <button id="mobileSearchBtn" class="primary-btn rounded-full px-4 py-2 text-sm font-bold">Search</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="relative mx-auto grid max-w-[1500px] items-center gap-6 overflow-hidden px-5 pb-9 pt-12 sm:px-8 md:min-h-[315px] md:grid-cols-[1.08fr_.92fr] md:gap-0 md:px-12 md:pt-10">
+      <div class="relative z-10">
+        <p class="mb-4 text-[10px] font-bold tracking-[.18em] text-aqua sm:text-xs">SATELLITE DATA <span class="px-1 text-muted">•</span> REAL INSIGHTS <span class="px-1 text-muted">•</span> A BETTER TOMORROW</p>
+        <h1 class="text-4xl font-extrabold leading-[1.12] tracking-tight sm:text-5xl lg:text-[54px]">Explore Our Planet.<br><span class="text-aqua">See Real Changes.</span></h1>
+        <p class="mt-5 max-w-xl text-sm leading-6 text-muted sm:text-[15px]">Explore land, water, forest, urban growth, climate and environmental changes across the globe with satellite imagery and AI-powered insights.</p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="#explore" class="primary-btn inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold shadow-glow">➤ &nbsp; Explore the Map <span>→</span></a>
+          <button id="watchDemoBtn" class="secondary-btn rounded-full px-5 py-3 text-sm font-semibold">▶ &nbsp; Watch Demo</button>
+        </div>
+      </div>
+      <div class="relative mx-auto flex h-[220px] w-full max-w-[500px] items-center justify-center md:h-[290px]">
+        <div class="absolute h-48 w-64 rounded-[50%] border border-aqua/20 sm:h-56 sm:w-80 orbit"></div>
+        <div class="absolute h-56 w-72 rotate-[-20deg] rounded-[50%] border border-aqua/20 sm:h-64 sm:w-[420px] orbit"></div>
+        <div class="absolute h-64 w-80 rotate-[28deg] rounded-[50%] border border-aqua/15 sm:h-[300px] sm:w-[460px] orbit"></div>
+        <div class="relative h-44 w-44 overflow-hidden rounded-full border border-cyan-200/30 shadow-[0_0_65px_rgba(5,209,245,.25)] sm:h-52 sm:w-52">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_32%_25%,#5ed2c3_0%,#176f8a_35%,#0b315d_65%,#02060d_100%)]"></div>
+          <svg viewBox="0 0 220 220" class="absolute inset-0 h-full w-full" aria-label="Illustration of Earth" role="img">
+            <defs><clipPath id="earthClip"><circle cx="110" cy="110" r="108"/></clipPath><linearGradient id="earthShade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4ffe0" stop-opacity=".45"/><stop offset="1" stop-color="#02060d" stop-opacity=".8"/></linearGradient></defs>
+            <g clip-path="url(#earthClip)">
+              <path d="M14 54 L37 28 62 33 70 49 91 53 99 74 83 88 67 86 58 107 42 115 32 98 19 91Z" fill="#63a878"/>
+              <path d="M79 110 L104 96 123 108 130 132 118 150 111 176 93 190 83 164 75 144Z" fill="#438b69"/>
+              <path d="M115 36 L139 24 165 34 179 49 199 54 203 75 185 83 172 72 157 85 140 72 124 75 110 59Z" fill="#6aa879"/>
+              <path d="M146 103 L168 91 191 102 200 124 183 140 171 165 150 154 140 132Z" fill="#3c815f"/>
+              <path d="M35 19 Q80 62 65 105 T105 220 M0 100 Q80 80 220 116 M40 0 Q110 90 180 220" fill="none" stroke="#9de5d0" stroke-opacity=".22" stroke-width="1.5"/>
+              <rect width="220" height="220" fill="url(#earthShade)"/>
+            </g>
+          </svg>
+          <div class="absolute inset-0 rounded-full border border-white/10"></div>
+        </div>
+        <span class="absolute right-[8%] top-[23%] rounded-full border border-aqua/30 bg-panel/90 px-3 py-2 text-[10px] text-aqua shadow-glow">● Live Earth view</span>
+        <span class="absolute bottom-[13%] left-[4%] rounded-full border border-line bg-panel/90 px-3 py-2 text-[10px] text-muted">Global coverage · 24/7</span>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-[1500px] px-4 pb-7 sm:px-6 lg:px-10" aria-label="Explore categories">
+      <div class="grid grid-cols-1 gap-2 rounded-2xl border border-line/70 bg-panel p-3 sm:grid-cols-2 lg:grid-cols-5">
+        <button class="category-card flex items-center gap-3 rounded-xl border border-transparent p-3 text-left" data-category="Land Change">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-panel2 text-xl text-emerald-400">◈</span><span><strong class="block text-xs">Land Change</strong><small class="mt-1 block text-[10px] text-muted">Land use & surface change</small></span>
+        </button>
+        <button class="category-card flex items-center gap-3 rounded-xl border border-transparent p-3 text-left" data-category="Water & Flood">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-panel2 text-xl text-blue-400">≋</span><span><strong class="block text-xs">Water & Flood</strong><small class="mt-1 block text-[10px] text-muted">Rivers, lakes & flood risk</small></span>
+        </button>
+        <button class="category-card flex items-center gap-3 rounded-xl border border-transparent p-3 text-left" data-category="Forest & Vegetation">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-panel2 text-xl text-emerald-400">♣</span><span><strong class="block text-xs">Forest & Vegetation</strong><small class="mt-1 block text-[10px] text-muted">Deforestation & green cover</small></span>
+        </button>
+        <button class="category-card flex items-center gap-3 rounded-xl border border-transparent p-3 text-left" data-category="Urban Growth">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-panel2 text-xl text-purple-400">▦</span><span><strong class="block text-xs">Urban Growth</strong><small class="mt-1 block text-[10px] text-muted">Cities & infrastructure</small></span>
+        </button>
+        <button class="category-card flex items-center gap-3 rounded-xl border border-transparent p-3 text-left" data-category="Climate & Environment">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-panel2 text-xl text-orange-400">♨</span><span><strong class="block text-xs">Climate & Environment</strong><small class="mt-1 block text-[10px] text-muted">Temperature, heat & more</small></span>
+        </button>
+      </div>
+    </section>
+
+    <section id="explore" class="mx-auto max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-10">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div><p class="text-[10px] font-bold uppercase tracking-[.2em] text-aqua">Earth observation workspace</p><h2 class="mt-1 text-xl font-bold sm:text-2xl">🌐 Explore</h2></div>
+        <div class="text-xs text-muted">Demo interface <span class="px-1 text-aqua">●</span> Global view</div>
+      </div>
+      <div class="grid gap-3 xl:grid-cols-[210px_minmax(0,1fr)_270px]">
+        <aside class="rounded-2xl border border-line/70 bg-night p-3">
+          <p class="mb-3 px-2 text-[10px] font-bold uppercase tracking-widest text-muted">Workspace</p>
+          <div class="space-y-1" id="sideNav">
+            <button data-view="Global View" class="side-item flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-muted hover:bg-panel2"><span>⌂</span> Global View</button>
+            <button data-view="Satellite Map" class="side-item active-nav flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs font-semibold"><span>◫</span> Satellite Map</button>
+            <button data-view="Compare Images" class="side-item flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-muted hover:bg-panel2"><span>▱</span> Compare Images</button>
+            <button data-view="Change Detection" class="side-item flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-muted hover:bg-panel2"><span>∿</span> Change Detection</button>
+            <button data-view="Layer Control" class="side-item flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-muted hover:bg-panel2"><span>◇</span> Layer Control</button>
+            <button data-view="Saved Places" class="side-item flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-muted hover:bg-panel2"><span>♧</span> Saved Places</button>
+          </div>
+          <div class="mt-7 rounded-xl border border-line/70 bg-panel2 p-3"><p class="text-xs font-semibold">ⓘ Need help?</p><p class="mt-1 text-[10px] leading-5 text-muted">This is a demo workspace. Connect satellite data to enable real analysis.</p><button id="helpBtn" class="mt-2 text-xs font-semibold text-aqua">Read quick guide →</button></div>
+        </aside>
+
+        <div class="min-w-0 overflow-hidden rounded-2xl border border-line/70 bg-panel">
+          <div class="flex flex-wrap items-center gap-2 border-b border-line/60 p-3">
+            <label class="flex min-w-[170px] flex-1 items-center gap-2 rounded-full border border-line bg-panel2 px-3 py-2"><span class="text-aqua">⌕</span><input id="mapSearch" class="min-w-0 w-full bg-transparent text-xs outline-none placeholder:text-muted" placeholder="Search location..." aria-label="Map location search"></label>
+            <button id="mapSearchBtn" class="secondary-btn rounded-full px-3 py-2 text-xs">Go</button>
+            <button id="layersShortcut" class="secondary-btn rounded-full px-3 py-2 text-xs">▱ Layers ⌄</button>
+            <button id="compareBtn" class="secondary-btn rounded-full px-3 py-2 text-xs">⇆ Compare</button>
+          </div>
+          <div id="mapCanvas" class="map-grid map-texture relative min-h-[350px] overflow-hidden sm:min-h-[430px]">
+            <svg id="mapArtwork" viewBox="0 0 900 520" preserveAspectRatio="xMidYMid slice" class="absolute inset-0 h-full w-full transition-transform duration-300" aria-label="Illustrative satellite map" role="img">
+              <defs>
+                <linearGradient id="terrain" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#36573b"/><stop offset=".45" stop-color="#203f34"/><stop offset="1" stop-color="#182e2b"/></linearGradient>
+                <pattern id="fields" width="95" height="72" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)"><rect width="95" height="72" fill="none"/><path d="M0 0H95V72H0Z" fill="none" stroke="#9bad68" stroke-opacity=".2" stroke-width="2"/><path d="M8 8H44V28H8Z M52 35H88V63H52Z" fill="#81975b" fill-opacity=".12"/></pattern>
+              </defs>
+              <rect width="900" height="520" fill="url(#terrain)"/>
+              <path class="land-shape" d="M-20 50 L100 10 195 42 240 110 210 166 135 190 110 250 32 220 -20 170Z"/>
+              <path class="land-shape" d="M250 -15 L400 25 438 82 392 140 330 160 290 220 245 177 270 100Z"/>
+              <path class="land-shape" d="M500 0 L640 25 690 75 780 55 920 115 900 215 800 220 745 175 670 200 615 145 550 128 520 70Z"/>
+              <path class="land-shape" d="M-10 340 L80 290 170 320 225 385 200 470 125 510 -10 480Z"/>
+              <path class="land-shape" d="M300 260 L370 215 435 260 450 325 415 390 380 470 315 450 285 370Z"/>
+              <path class="land-shape" d="M520 280 L610 245 690 290 720 360 665 425 600 460 560 400 535 345Z"/>
+              <path d="M0 0H900V520H0Z" fill="url(#fields)" opacity=".85"/>
+              <g id="waterLayer"><path class="river" d="M-30 260 C80 205 100 310 205 260 S340 190 420 245 S570 335 650 275 S790 230 940 285"/><path class="river-highlight" d="M-30 260 C80 205 100 310 205 260 S340 190 420 245 S570 335 650 275 S790 230 940 285"/><path class="river" style="stroke-width:7;opacity:.75" d="M390 240 C365 290 425 325 405 365 S375 430 410 540"/></g>
+              <g id="forestLayer" fill="#0e7a51" fill-opacity=".65"><circle cx="115" cy="100" r="28"/><circle cx="145" cy="112" r="34"/><circle cx="172" cy="95" r="23"/><circle cx="690" cy="115" r="34"/><circle cx="725" cy="135" r="28"/><circle cx="760" cy="118" r="38"/><circle cx="630" cy="390" r="33"/><circle cx="670" cy="400" r="28"/><circle cx="702" cy="380" r="35"/></g>
+              <g id="urbanLayer" fill="#d1b77d" fill-opacity=".75"><rect x="280" y="300" width="18" height="15"/><rect x="303" y="292" width="12" height="22"/><rect x="319" y="305" width="21" height="12"/><rect x="287" y="323" width="14" height="19"/><rect x="312" y="326" width="24" height="16"/><rect x="735" y="245" width="18" height="15"/><rect x="760" y="238" width="12" height="22"/><rect x="779" y="250" width="22" height="13"/><rect x="747" y="268" width="16" height="18"/><rect x="775" y="275" width="22" height="14"/></g>
+              <g id="heatLayer" opacity=".45"><circle cx="450" cy="180" r="80" fill="#ff6b1f"/><circle cx="450" cy="180" r="48" fill="#f5c15b" opacity=".5"/><circle cx="130" cy="390" r="75" fill="#ff6b1f" opacity=".6"/></g>
+              <g fill="#e5fbff" stroke="#05d1f5" stroke-width="2"><circle cx="450" cy="245" r="7"/><circle cx="450" cy="245" r="17" fill="none" stroke-opacity=".5"/><circle cx="300" cy="320" r="5"/><circle cx="740" cy="260" r="5"/></g>
+              <g fill="#ebf5ff" font-family="Inter, sans-serif" font-size="13" opacity=".85"><text x="465" y="238">Selected area</text><text x="90" y="80">NORTH REGION</text><text x="660" y="455">SOUTH REGION</text></g>
+            </svg>
+            <div class="absolute left-3 top-3 flex flex-wrap gap-2">
+              <span class="rounded-lg border border-white/10 bg-panel/90 px-3 py-2 text-[10px] font-semibold text-white"><span class="text-aqua">●</span> Satellite preview</span>
+              <span id="mapCategoryBadge" class="rounded-lg border border-white/10 bg-panel/90 px-3 py-2 text-[10px] text-muted">All environmental layers</span>
+            </div>
+            <div class="absolute right-3 top-3 flex flex-col overflow-hidden rounded-lg border border-line/80 bg-panel/90">
+              <button id="zoomIn" class="px-3 py-2 text-lg hover:bg-panel2" aria-label="Zoom in">+</button><div class="h-px bg-line"></div><button id="zoomOut" class="px-3 py-2 text-lg hover:bg-panel2" aria-label="Zoom out">−</button>
+            </div>
+            <div id="compareLabels" class="pointer-events-none absolute inset-x-3 bottom-3 hidden items-end justify-between">
+              <span class="rounded-lg bg-panel/90 px-3 py-2 text-xs font-bold">2018 · BEFORE</span><span class="rounded-lg bg-panel/90 px-3 py-2 text-xs font-bold">2024 · AFTER</span>
+            </div>
+            <div class="absolute bottom-3 left-3 rounded-lg border border-white/10 bg-panel/90 px-3 py-2 text-[10px] text-muted">Illustrative map · Not live satellite data</div>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 px-4 py-3 text-[10px] text-muted"><span>Map preview · Select layers to explore</span><button id="exportBtn" class="font-semibold text-aqua hover:text-white">⇩ Export demo report</button></div>
+        </div>
+
+        <aside id="analysisPanel" class="rounded-2xl border border-line/70 bg-night p-4">
+          <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold">Select Area & Analysis</h3><span class="text-aqua">⌁</span></div>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button id="locationTab" class="primary-btn rounded-full px-2 py-2 text-[10px] font-bold">⌕ Location Search</button>
+            <button id="uploadTab" class="secondary-btn rounded-full px-2 py-2 text-[10px] font-semibold">♧ Upload Area</button>
+          </div>
+          <div id="locationForm" class="mt-3">
+            <label class="block"><span class="sr-only">Enter a location</span><input id="locationInput" class="w-full rounded-lg border border-line bg-panel2 px-3 py-3 text-[11px] outline-none placeholder:text-muted focus:border-aqua" placeholder="Enter place or coordinates..."></label>
+            <p class="mt-2 text-[10px] leading-4 text-muted">Try a city, region, or coordinates.</p>
+          </div>
+          <div id="uploadForm" class="mt-3 hidden">
+            <label class="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-line bg-panel2 p-4 text-center hover:border-aqua"><span class="text-xl text-aqua">↑</span><span class="mt-1 text-xs font-semibold">Choose a boundary file</span><span class="mt-1 text-[10px] text-muted">GeoJSON, KML or image (demo)</span><input id="areaFile" type="file" accept=".geojson,.json,.kml,.png,.jpg,.jpeg" class="mt-3 max-w-full text-[10px] text-muted"></label>
+          </div>
+          <div class="mt-5 flex items-center justify-between"><h4 class="text-xs font-bold">Select Layers</h4><button id="resetLayers" class="text-[10px] font-semibold text-aqua">Reset</button></div>
+          <div class="mt-3 space-y-3">
+            <label class="flex cursor-pointer items-center gap-2 text-[11px]"><input type="checkbox" data-layer="land" checked class="accent-cyan-400 h-4 w-4"><span class="text-emerald-400">●</span><span>Land Cover</span></label>
+            <label class="flex cursor-pointer items-center gap-2 text-[11px]"><input type="checkbox" data-layer="water" checked class="accent-cyan-400 h-4 w-4"><span class="text-blue-400">●</span><span>Water & Flood</span></label>
+            <label class="flex cursor-pointer items-center gap-2 text-[11px]"><input type="checkbox" data-layer="forest" checked class="accent-cyan-400 h-4 w-4"><span class="text-emerald-400">●</span><span>Forest & Vegetation</span></label>
+            <label class="flex cursor-pointer items-center gap-2 text-[11px]"><input type="checkbox" data-layer="urban" class="accent-cyan-400 h-4 w-4"><span class="text-purple-400">●</span><span>Urban Area</span></label>
+            <label class="flex cursor-pointer items-center gap-2 text-[11px]"><input type="checkbox" data-layer="heat" class="accent-cyan-400 h-4 w-4"><span class="text-orange-400">●</span><span>Temperature</span></label>
+            <label class="flex cursor-pointer items-center gap-2 text-[11px]"><input type="checkbox" data-layer="heat" data-extra="climate" class="accent-cyan-400 h-4 w-4"><span class="text-orange-400">●</span><span>Climate & Environment</span></label>
+          </div>
+          <button id="runAnalysis" class="primary-btn mt-5 w-full rounded-full px-4 py-3 text-xs font-extrabold shadow-glow">▥ &nbsp; Run Analysis <span class="ml-1">→</span></button>
+          <p class="mt-3 text-[10px] leading-4 text-muted">Demo mode: analysis results are illustrative until a real satellite data service is connected.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="features" class="mx-auto max-w-[1500px] px-4 pb-12 sm:px-6 lg:px-10">
+      <div class="mb-5"><p class="text-[10px] font-bold uppercase tracking-[.2em] text-aqua">Built for a changing world</p><h2 class="mt-2 text-xl font-bold sm:text-2xl">Understand the planet, one layer at a time.</h2></div>
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="rounded-2xl border border-line/70 bg-panel p-5"><span class="grid h-11 w-11 place-items-center rounded-xl bg-panel2 text-xl text-aqua">◈</span><h3 class="mt-4 text-sm font-bold">High-Resolution Satellite Data</h3><p class="mt-2 text-xs leading-5 text-muted">Explore historical and recent imagery from trusted data sources when connected.</p></article>
+        <article class="rounded-2xl border border-line/70 bg-panel p-5"><span class="grid h-11 w-11 place-items-center rounded-xl bg-panel2 text-xl text-aqua">▦</span><h3 class="mt-4 text-sm font-bold">AI-Powered Change Detection</h3><p class="mt-2 text-xs leading-5 text-muted">Spot changes in land cover, vegetation, water and built-up areas.</p></article>
+        <article class="rounded-2xl border border-line/70 bg-panel p-5"><span class="grid h-11 w-11 place-items-center rounded-xl bg-panel2 text-xl text-aqua">◎</span><h3 class="mt-4 text-sm font-bold">Global Coverage</h3><p class="mt-2 text-xs leading-5 text-muted">Explore places around the world, from local areas to wider regions.</p></article>
+        <article class="rounded-2xl border border-line/70 bg-panel p-5"><span class="grid h-11 w-11 place-items-center rounded-xl bg-panel2 text-xl text-aqua">♧</span><h3 class="mt-4 text-sm font-bold">Download & Share</h3><p class="mt-2 text-xs leading-5 text-muted">Export a demo report and share your selected analysis settings.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer id="about" class="border-t border-line/70 bg-panel">
+    <div class="mx-auto flex max-w-[1500px] flex-col gap-3 px-5 py-6 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-10">
+      <a href="#home" class="font-extrabold tracking-tight">◉ Terra <span class="text-aqua">Pulse</span></a>
+      <p class="text-muted">Monitoring our planet for a sustainable future.</p>
+      <div class="flex gap-4 text-muted"><a href="#about" class="hover:text-aqua">Privacy</a><a href="#about" class="hover:text-aqua">Terms</a><a href="mailto:hello@terrapulse.example" class="hover:text-aqua">Contact</a></div>
+    </div>
+    <p class="px-5 pb-5 text-center text-[10px] text-muted/80">Prototype UI · Sample map and demo analysis only. Not for emergency or scientific decision-making.</p>
+  </footer>
+
+  <div id="toast" class="pointer-events-none fixed bottom-5 left-1/2 z-50 hidden max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-xl border border-line bg-panel px-5 py-3 text-sm shadow-2xl" role="status" aria-live="polite"></div>
+  <div id="demoModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="demoTitle">
+    <div class="w-full max-w-lg rounded-2xl border border-line bg-panel p-6 shadow-2xl">
+      <div class="flex items-start justify-between gap-4"><div><p class="text-[10px] font-bold uppercase tracking-widest text-aqua">Terra Pulse demo</p><h2 id="demoTitle" class="mt-2 text-xl font-bold">Explore the planet</h2></div><button id="closeDemo" class="secondary-btn rounded-full px-3 py-1" aria-label="Close demo">✕</button></div>
+      <p class="mt-4 text-sm leading-6 text-muted">Choose a category, enter a location, turn map layers on or off, then select <strong class="text-white">Run Analysis</strong>. This prototype demonstrates the interface only; it does not fetch real satellite imagery or calculate scientific results.</p>
+      <button id="startDemo" class="primary-btn mt-5 rounded-full px-5 py-3 text-sm font-bold">Start exploring →</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let toastTimer;
+    function showToast(message) {
+      const toast = $('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      toast.classList.add('toast');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
+    }
+    function searchLocation(value) {
+      const place = value.trim();
+      if (!place) { showToast('Please enter a location first.'); return; }
+      $('locationInput').value = place;
+      $('mapSearch').value = place;
+      $('topSearch').value = place;
+      if ($('mobileSearch')) $('mobileSearch').value = place;
+      showToast('Demo location selected: ' + place + '. Connect a geocoding service for real map search.');
+      $('explore').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    $('topSearchBtn').addEventListener('click', () => searchLocation($('topSearch').value));
+    $('topSearch').addEventListener('keydown', e => { if(e.key==='Enter') searchLocation(e.target.value); });
+    $('mapSearchBtn').addEventListener('click', () => searchLocation($('mapSearch').value));
+    $('mapSearch').addEventListener('keydown', e => { if(e.key==='Enter') searchLocation(e.target.value); });
+    $('mobileSearchBtn').addEventListener('click', () => searchLocation($('mobileSearch').value));
+    $('mobileSearch').addEventListener('keydown', e => { if(e.key==='Enter') searchLocation(e.target.value); });
+
+    $('mobileMenuBtn').addEventListener('click', () => {
+      const menu = $('mobileMenu');
+      const open = menu.classList.toggle('hidden') === false;
+      $('mobileMenuBtn').setAttribute('aria-expanded', String(open));
+      $('mobileMenuBtn').textContent = open ? '✕' : '☰';
+    });
+    document.querySelectorAll('#mobileMenu a').forEach(a => a.addEventListener('click', () => $('mobileMenu').classList.add('hidden')));
+
+    const categoryLabels = {
+      'Land Change':'Land cover layer selected',
+      'Water & Flood':'Water & flood layer selected',
+      'Forest & Vegetation':'Forest & vegetation layer selected',
+      'Urban Growth':'Urban growth layer selected',
+      'Climate & Environment':'Climate & environment layer selected'
+    };
+    document.querySelectorAll('[data-category]').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-category]').forEach(b => b.classList.remove('border-aqua/60','bg-panel2'));
+      btn.classList.add('border-aqua/60','bg-panel2');
+      $('mapCategoryBadge').textContent = btn.dataset.category;
+      const checks = [...document.querySelectorAll('[data-layer]')];
+      checks.forEach(c => c.checked = false);
+      const match = {
+        'Land Change':['land'],
+        'Water & Flood':['water'],
+        'Forest & Vegetation':['forest'],
+        'Urban Growth':['urban'],
+        'Climate & Environment':['heat']
+      }[btn.dataset.category] || [];
+      checks.forEach(c => { if(match.includes(c.dataset.layer)) c.checked = true; });
+      updateLayers();
+      showToast(categoryLabels[btn.dataset.category] + ' (illustrative preview).');
+      $('explore').scrollIntoView({behavior:'smooth',block:'start'});
+    }));
+
+    function updateLayers() {
+      const isOn = name => [...document.querySelectorAll('[data-layer]')].some(c => c.dataset.layer===name && c.checked);
+      $('waterLayer').style.display = isOn('water') ? '' : 'none';
+      $('forestLayer').style.display = isOn('forest') ? '' : 'none';
+      $('urbanLayer').style.display = isOn('urban') ? '' : 'none';
+      $('heatLayer').style.display = isOn('heat') ? '' : 'none';
+      const landOn = isOn('land');
+      $('mapArtwork').style.filter = landOn ? 'none' : 'saturate(.5) brightness(.75)';
+    }
+    document.querySelectorAll('[data-layer]').forEach(c => c.addEventListener('change', updateLayers));
+    $('resetLayers').addEventListener('click', () => {
+      document.querySelectorAll('[data-layer]').forEach(c => c.checked = ['land','water','forest'].includes(c.dataset.layer) && !c.dataset.extra);
+      updateLayers();
+      $('mapCategoryBadge').textContent = 'All environmental layers';
+      document.querySelectorAll('[data-category]').forEach(b => b.classList.remove('border-aqua/60','bg-panel2'));
+      showToast('Map layers reset.');
+    });
+
+    let zoom = 1;
+    function setZoom(next) {
+      zoom = Math.max(.8, Math.min(1.8, next));
+      $('mapArtwork').style.transform = 'scale(' + zoom + ')';
+    }
+    $('zoomIn').addEventListener('click', () => setZoom(zoom + .1));
+    $('zoomOut').addEventListener('click', () => setZoom(zoom - .1));
+
+    $('compareBtn').addEventListener('click', () => {
+      const labels = $('compareLabels');
+      const nowHidden = labels.classList.toggle('hidden');
+      labels.classList.toggle('flex', !nowHidden);
+      $('compareBtn').classList.toggle('border-aqua', !nowHidden);
+      showToast(nowHidden ? 'Comparison labels hidden.' : 'Before / after comparison preview enabled.');
+    });
+    $('layersShortcut').addEventListener('click', () => {
+      $('analysisPanel').scrollIntoView({behavior:'smooth',block:'center'});
+      $('analysisPanel').classList.add('ring-1','ring-aqua/60');
+      setTimeout(() => $('analysisPanel').classList.remove('ring-1','ring-aqua/60'), 1300);
+    });
+
+    $('locationTab').addEventListener('click', () => {
+      $('locationForm').classList.remove('hidden'); $('uploadForm').classList.add('hidden');
+      $('locationTab').className='primary-btn rounded-full px-2 py-2 text-[10px] font-bold';
+      $('uploadTab').className='secondary-btn rounded-full px-2 py-2 text-[10px] font-semibold';
+    });
+    $('uploadTab').addEventListener('click', () => {
+      $('locationForm').classList.add('hidden'); $('uploadForm').classList.remove('hidden');
+      $('uploadTab').className='primary-btn rounded-full px-2 py-2 text-[10px] font-bold';
+      $('locationTab').className='secondary-btn rounded-full px-2 py-2 text-[10px] font-semibold';
+    });
+    $('areaFile').addEventListener('change', e => {
+      if (e.target.files[0]) showToast('Selected file: ' + e.target.files[0].name + '. File upload is visual demo only.');
+    });
+    $('runAnalysis').addEventListener('click', () => {
+      const location = $('locationInput').value.trim() || $('mapSearch').value.trim() || 'Global view';
+      const selected = [...document.querySelectorAll('[data-layer]:checked')].map(c => c.dataset.extra==='climate' ? 'Climate & Environment' : c.parentElement.innerText.trim().replace(/^●\\s*/, ''));
+      showToast('Demo analysis ready for ' + location + '. Selected layers: ' + (selected.length ? selected.join(', ') : 'none') + '.');
+    });
+    $('exportBtn').addEventListener('click', () => {
+      const selected = [...document.querySelectorAll('[data-layer]:checked')].map(c => c.parentElement.innerText.trim().replace(/^●\\s*/, ''));
+      const data = [
+        ['Terra Pulse — Demo Analysis Report'],
+        ['Location', $('locationInput').value.trim() || $('mapSearch').value.trim() || 'Global view'],
+        ['Generated', new Date().toLocaleString()],
+        ['Data status', 'Illustrative demo only — no real satellite data fetched'],
+        ['Selected layers', selected.join('; ') || 'None']
+      ].map(row => row.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\\r\\n');
+      const blob = new Blob([data], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'terra-pulse-demo-report.csv'; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Demo report downloaded as CSV.');
+    });
+
+    const modal = $('demoModal');
+    $('watchDemoBtn').addEventListener('click', () => { modal.classList.remove('hidden'); modal.classList.add('flex'); });
+    function closeModal(){modal.classList.add('hidden');modal.classList.remove('flex');}
+    $('closeDemo').addEventListener('click', closeModal);
+    $('startDemo').addEventListener('click', () => { closeModal(); $('explore').scrollIntoView({behavior:'smooth'}); showToast('You’re ready to explore the demo.'); });
+    modal.addEventListener('click', e => { if(e.target===modal) closeModal(); });
+    document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+    $('signInBtn').addEventListener('click', () => showToast('Sign-in is not connected in this prototype.'));
+    $('helpBtn').addEventListener('click', () => {
+      alert('Quick guide\\n\\n1. Choose an environmental category.\\n2. Enter a location.\\n3. Toggle map layers.\\n4. Click Run Analysis.\\n5. Export a demo CSV report.\\n\\nReal analysis requires satellite data and analysis services.');
+    });
+    document.querySelectorAll('.side-item').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.side-item').forEach(b => {b.classList.remove('active-nav','font-semibold');b.classList.add('text-muted');});
+      btn.classList.add('active-nav','font-semibold'); btn.classList.remove('text-muted');
+      showToast(btn.dataset.view + ' workspace selected (demo).');
+      if(btn.dataset.view==='Compare Images') $('compareBtn').click();
+      if(btn.dataset.view==='Layer Control') $('layersShortcut').click();
+    }));
+    document.querySelectorAll('.nav-link').forEach(a => a.addEventListener('click', () => {
+      document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active-nav'));
+      a.classList.add('active-nav');
+    }));
+  </script>
+</body>
+</html>
